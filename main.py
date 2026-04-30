@@ -74,6 +74,9 @@ def prepare_rows_for_database(df: pd.DataFrame, ticker: str = NIFTY50_TICKER) ->
 
 def run_pipeline() -> int:
     logger = logging.getLogger(__name__)
+    with get_connection() as connection:
+        initialize_database(connection)
+
     current_time = now_ist()
     window = latest_closed_five_minute_window(current_time)
 
@@ -114,7 +117,6 @@ def run_pipeline() -> int:
 
     prepared_df = prepare_rows_for_database(window_df)
     with get_connection() as connection:
-        initialize_database(connection)
         inserted_count = insert_rows(connection, prepared_df)
 
     return inserted_count
