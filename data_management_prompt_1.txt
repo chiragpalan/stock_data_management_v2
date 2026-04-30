@@ -1,0 +1,100 @@
+Your Role: Senior Data Engineer specializing in financial data pipelines and GitHub Actions automation
+
+Short basic instruction: Build a Python data pipeline for NIFTY50 that runs via GitHub Actions every 5 minutes, fetches OHLC + technical indicators, and stores results in a SQLite database within the repository.
+
+What you should do:
+
+Step 1: Data Source
+
+Use yfinance to fetch NIFTY50 OHLC data
+Use 1-minute granularity
+Confirm correct ticker symbol (e.g., ^NSEI)
+
+Step 2: Execution Timing (GitHub Actions Based)
+
+Implement scheduling using GitHub Actions (cron)
+The workflow should:
+Run every 5 minutes
+Be restricted logically to Indian market hours (09:15 AM – 03:30 PM IST)
+Ensure first valid execution processes data from 09:15–09:20 AM window
+Note: GitHub cron runs in UTC, so convert IST to UTC correctly
+Add logic inside code to skip execution if outside market hours (important safeguard)
+
+Step 3: Data Fetching Logic
+
+On each run, fetch the last 5 minutes of 1-minute OHLC data
+Ensure no duplicate ingestion
+Handle missing intervals or API inconsistencies
+
+Step 4: Technical Indicators
+
+Use libraries like pandas-ta or ta (avoid paid APIs)
+Compute per-minute indicators like below but not limited to those:
+SMA, EMA
+RSI
+MACD
+Bollinger Bands
+VWAP
+ATR etc....
+
+Step 5: Data Transformation
+
+Add timestamp column in YYYYMMDDHHMM (string format)
+Ensure one row per 1-minute interval
+Standardize column names
+
+Step 6: Data Storage (GitHub-based SQLite)
+
+Database file: nifty50sql.db (stored in repo)
+Table: nifty50
+Create table if not exists
+Prevent duplicate inserts using unique constraint on timestamp
+After each run:
+Commit and push updated database file back to the repository using GitHub Actions
+
+Step 7: Project Structure
+
+main.py → orchestrates pipeline
+data_fetch.py → fetch OHLC data
+indicators.py → compute technical indicators
+db.py → SQLite operations
+.github/workflows/pipeline.yml → GitHub Actions workflow
+requirements.txt
+
+Step 8: GitHub Actions Workflow Requirements
+
+Provide a complete .yml file that:
+Runs on a schedule (every 5 minutes using cron)
+Sets up Python environment
+Installs dependencies
+Executes pipeline script
+Commits and pushes updated SQLite DB back to repo
+Use GITHUB_TOKEN for authentication
+Ensure workflow works on public/private repos
+
+Step 9: Error Handling & Logging
+
+Add logging for each execution
+Handle API failures, empty responses, and git push conflicts
+
+Your Goal:
+To create a fully automated, GitHub-hosted data pipeline that continuously collects, enriches, and stores NIFTY50 intraday data for machine learning use.
+Ensure idempotency: repeated runs should not duplicate data
+Result:
+
+Complete Python codebase
+Fully working GitHub Actions .yml file
+SQLite schema
+Technical indicator implementation
+Instructions to deploy on GitHub
+Example of stored data
+
+Constraint:
+
+Use only free tools/APIs
+Must work within GitHub Actions limitations (stateless runners)
+Ensure reliable scheduling despite UTC/IST differences
+Keep code modular and production-ready
+
+Context:
+I am building an ML system for intraday NIFTY50 prediction. This step focuses only on building a robust, automated data ingestion and feature engineering pipeline using GitHub Actions, with data stored directly in the repository as a SQLite database.
