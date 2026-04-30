@@ -1,0 +1,75 @@
+name: NIFTY50 Data Pipeline
+
+on:
+  schedule:
+    # 09:20-15:40 IST, Monday-Friday.
+    # GitHub cron uses UTC, so this is 03:50-10:10 UTC.
+    - cron: "50,55 3 * * 1-5"
+    - cron: "*/5 4-9 * * 1-5"
+    - cron: "0,5,10 10 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nifty50-sqlite-pipeline
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run NIFTY50 ingestion
+        run: python main.py
+
+      - name: Commit and push database
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if [ ! -f nifty50sql.db ]; then
+            echo "Database file was not created; nothing to commit."
+            exit 0
+          fi
+
+          git add nifty50sql.db
+
+          if git diff --cached --quiet; then
+            echo "No database changes to commit."
+            exit 0
+          fi
+
+          git commit -m "Update NIFTY50 SQLite data"
+
+          for attempt in 1 2 3; do
+            if git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              echo "Database update pushed successfully."
+              exit 0
+            fi
+            echo "Push attempt ${attempt} failed; retrying after a short delay."
+            sleep 10
+          done
+
+          echo "Failed to push database update after retries."
+          exit 1
